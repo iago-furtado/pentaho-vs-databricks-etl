@@ -1,0 +1,14 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Generated experimental data and outputs
+datasets/*/
+!datasets/.gitkeep
+results/*/
+!results/README.md
+
+# Local environment files
+.env
