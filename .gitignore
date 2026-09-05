@@ -12,5 +12,9 @@ results/*/
 !results/experiment_runs.csv
 !results/development_runs.csv
 
+# Locally generated Pentaho outputs
+pentaho/output/*/
+!pentaho/output/.gitkeep
+
 # Local environment files
 .env

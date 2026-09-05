@@ -33,6 +33,12 @@ workspace.default.gold_monthly_sales_by_state_category_<scenario>
 
 This design keeps raw files separate from governed Delta tables and makes the Silver-to-Gold dependency available through the Databricks catalog lineage interface.
 
+### 2.2 Execution environment
+
+The implementation and measurements were executed in Databricks Free Edition using Serverless compute. The Free Edition interface reports one SQL Warehouse limited to the `2X-Small` size. This describes the available SQL Warehouse entitlement; it is not a disclosed fixed hardware specification for the Serverless notebook compute used by the PySpark transformations.
+
+The Serverless environment is provider-managed: the user does not select a fixed instance type, processor count, memory allocation, or worker count. Resource allocation may vary between executions, so the experiment reports observed performance in this managed environment rather than performance tied to a fixed hardware specification.
+
 ## 3. Dataset scenarios
 
 | Scenario | Customers | Products | Transactions |
