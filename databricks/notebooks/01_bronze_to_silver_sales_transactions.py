@@ -2,8 +2,7 @@
 # MAGIC %md
 # MAGIC # Pentaho vs Databricks ETL experiment
 # MAGIC
-# MAGIC This notebook implements the common ETL specification in
-# MAGIC `docs/etl-specification.md` for one dataset scenario.
+# MAGIC This notebook transforms raw sales data from Bronze to Silver for one scenario.
 
 # COMMAND ----------
 
@@ -19,8 +18,8 @@ SCHEMA = "default"
 VOLUME = "etl_experiment"
 SCENARIO = "100k"
 
-INPUT_DIRECTORY = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}/{SCENARIO}"
-OUTPUT_DIRECTORY = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}/results/{SCENARIO}/databricks"
+BRONZE_DIRECTORY = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}/bronze/{SCENARIO}"
+SILVER_DIRECTORY = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}/silver/{SCENARIO}/sales_transaction_details"
 EXPECTED_TRANSACTION_COUNTS = {"100k": 100_000, "500k": 500_000, "1m": 1_000_000, "5m": 5_000_000}
 
 # COMMAND ----------
@@ -28,7 +27,7 @@ EXPECTED_TRANSACTION_COUNTS = {"100k": 100_000, "500k": 500_000, "1m": 1_000_000
 def read_csv(file_name: str) -> DataFrame:
     """Read a headered UTF-8 CSV file from the experiment volume."""
     return spark.read.option("header", "true").option("encoding", "UTF-8").csv(
-        f"{INPUT_DIRECTORY}/{file_name}"
+        f"{BRONZE_DIRECTORY}/{file_name}"
     )
 
 
@@ -97,17 +96,17 @@ enriched_transactions = (
     enriched_transactions.write.mode("overwrite")
     .option("header", "true")
     .option("encoding", "UTF-8")
-    .csv(OUTPUT_DIRECTORY)
+    .csv(SILVER_DIRECTORY)
 )
 
 elapsed_seconds = perf_counter() - start_time
-print(f"ETL completed in {elapsed_seconds:.3f} seconds.")
-print(f"Output directory: {OUTPUT_DIRECTORY}")
+print(f"Bronze-to-Silver ETL completed in {elapsed_seconds:.3f} seconds.")
+print(f"Silver output directory: {SILVER_DIRECTORY}")
 
 # COMMAND ----------
 
 # Validation is intentionally outside the measured ETL time.
-output = spark.read.option("header", "true").csv(OUTPUT_DIRECTORY)
+output = spark.read.option("header", "true").csv(SILVER_DIRECTORY)
 expected_columns = [
     "transaction_id", "customer_id", "customer_name", "state", "customer_segment",
     "product_id", "product_category", "unit_price", "transaction_date",

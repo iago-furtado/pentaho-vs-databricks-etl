@@ -8,7 +8,7 @@ The comparison evaluates the end-to-end execution time and scalability of each p
 
 ## 2. Scope
 
-The ETL process consumes the `customers.csv`, `products.csv`, and `transactions.csv` files of one dataset scenario and produces one enriched transaction dataset.
+The ETL process consumes the `customers.csv`, `products.csv`, and `transactions.csv` files of one dataset scenario and produces a Silver transaction-detail dataset and a Gold monthly-sales dataset.
 
 The process includes:
 
@@ -16,8 +16,9 @@ The process includes:
 2. Cleaning the customer name field.
 3. Joining transactions to customers and products.
 4. Creating calculated and derived fields.
-5. Writing the enriched transaction output.
-6. Validating that the output is logically equivalent in both platforms.
+5. Writing the Silver transaction-detail output.
+6. Aggregating Silver data into the Gold monthly-sales output.
+7. Validating that the outputs are logically equivalent in both platforms.
 
 The source datasets are valid and contain no nulls, duplicate transaction identifiers, or invalid foreign keys. Therefore, null handling, duplicate removal, error-routing flows, and data rejection rules are outside the initial scope.
 
@@ -98,9 +99,9 @@ From `transaction_date`, create:
 | `transaction_year` | Integer | Four-digit calendar year. |
 | `transaction_month` | Integer | Month number from 1 through 12. |
 
-## 5. Output contract
+## 5. Silver output contract
 
-The logical output is an enriched transaction dataset with one row per input transaction and the following ordered fields.
+The Silver logical output is an enriched transaction dataset with one row per input transaction and the following ordered fields.
 
 | Order | Field | Type | Origin or rule |
 | ---: | --- | --- | --- |
@@ -120,22 +121,38 @@ The logical output is an enriched transaction dataset with one row per input tra
 
 For each run, each platform must write its result to a separate output directory outside the input dataset directory. CSV is the initial logical interchange format. A distributed platform may produce multiple CSV part files; forcing a single output file is not required, because it would add an artificial platform-specific cost.
 
-Suggested local output layout:
+In Databricks, use the following volume layout:
 
 ```text
-results/
-└── <scenario>/
-    ├── pentaho/
-    │   └── enriched_transactions.csv
-    └── databricks/
-        └── enriched_transactions/  # one or more CSV part files
+/Volumes/<catalog>/<schema>/etl_experiment/
+├── bronze/<scenario>/
+│   ├── customers.csv
+│   ├── products.csv
+│   └── transactions.csv
+├── silver/<scenario>/sales_transaction_details/
+└── gold/<scenario>/monthly_sales_by_state_category/
 ```
 
-## 6. Output validation
+## 6. Gold output contract
+
+The Gold output summarizes Silver transactions at the grain of calendar year, calendar month, state, and product category.
+
+| Order | Field | Type | Rule |
+| ---: | --- | --- | --- |
+| 1 | `transaction_year` | Integer | Silver `transaction_year` |
+| 2 | `transaction_month` | Integer | Silver `transaction_month` |
+| 3 | `state` | String | Silver `state` |
+| 4 | `product_category` | String | Silver `product_category` |
+| 5 | `transaction_count` | Integer | Count of transactions in the group |
+| 6 | `total_quantity` | Integer | Sum of `quantity` in the group |
+| 7 | `total_sales_amount` | Decimal(16,2) | Sum of `total_amount` in the group |
+| 8 | `average_transaction_amount` | Decimal(12,2) | Average of `total_amount` in the group |
+
+## 7. Output validation
 
 Before comparing performance results, validate each run against these conditions:
 
-1. Output row count equals the source transaction count for the scenario.
+1. Silver output row count equals the source transaction count for the scenario.
 2. `transaction_id` is unique and ranges from 1 to the scenario transaction count.
 3. No customer name ends with a numeric suffix.
 4. The output contains the 13 specified fields, in the specified order.
@@ -143,10 +160,11 @@ Before comparing performance results, validate each run against these conditions
 6. `transaction_year` and `transaction_month` match `transaction_date`.
 7. For a reproducible sample of transaction identifiers, all output fields match between Pentaho and Databricks.
 8. The total sum of `total_amount`, grouped row counts by `transaction_year` and `transaction_month`, and the total output row count match between the two platforms.
+9. Gold `transaction_count` sums to the Silver output row count, and Gold `total_sales_amount` sums to the Silver `total_amount` sum.
 
 Checks 7 and 8 provide equivalence evidence without requiring a costly full row-by-row comparison of every large output file.
 
-## 7. Performance experiment protocol
+## 8. Performance experiment protocol
 
 ### 7.1 Scenarios
 
@@ -154,7 +172,7 @@ Run the same ETL process independently for `100k`, `500k`, `1m`, and `5m`. Do no
 
 ### 7.2 Measured metric
 
-The primary metric is end-to-end elapsed execution time in seconds: from the start of source-file reading until the enriched output has been successfully written.
+Record elapsed execution time separately for Bronze-to-Silver and Silver-to-Gold. The end-to-end elapsed time is their sum: from the start of source-file reading until the Gold output has been successfully written.
 
 Record the measured time with the same precision for both platforms. Record any execution failure separately; do not replace it with an estimated duration.
 
@@ -178,7 +196,7 @@ For a fair comparison, document and keep as stable as possible:
 
 The platforms do not need identical internal architectures. The methodology must transparently report differences that cannot be controlled, particularly local execution versus managed cloud execution.
 
-## 8. Results recording
+## 9. Results recording
 
 Each completed run should produce one record with, at minimum:
 
@@ -187,6 +205,7 @@ Each completed run should produce one record with, at minimum:
 | `run_id` | Unique run identifier. |
 | `platform` | `pentaho` or `databricks`. |
 | `scenario` | `100k`, `500k`, `1m`, or `5m`. |
+| `pipeline_layer` | `bronze_to_silver`, `silver_to_gold`, or `end_to_end`. |
 | `run_number` | Repetition number. |
 | `is_warmup` | Whether the run is designated as warm-up. |
 | `started_at` | Timestamp with time zone. |
@@ -196,7 +215,7 @@ Each completed run should produce one record with, at minimum:
 | `total_amount_sum` | Sum of `total_amount` when successful. |
 | `notes` | Relevant event, configuration, or error message. |
 
-## 9. Implementation constraints
+## 10. Implementation constraints
 
 - Both platforms must use the same source files for a given scenario.
 - Both platforms must implement all rules in Sections 4 and 5.
@@ -204,7 +223,7 @@ Each completed run should produce one record with, at minimum:
 - Any implementation-specific optimization must be documented and must not change the output contract.
 - The source data and generated outputs must not be committed to Git; code, configurations, documentation, and selected small result summaries may be committed.
 
-## 10. Decisions still required before execution
+## 11. Decisions still required before execution
 
 The following items must be decided and documented before the performance runs begin:
 
@@ -213,4 +232,3 @@ The following items must be decided and documented before the performance runs b
 3. Whether both platforms can access an equivalent storage medium.
 4. The final output serialization settings, including CSV delimiter, encoding, header handling, and decimal representation.
 5. The tool or script used to calculate and retain the result-validation summaries.
-
