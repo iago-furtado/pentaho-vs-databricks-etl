@@ -20,7 +20,9 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.graphics.charts.barcharts import VerticalBarChart
+from reportlab.graphics.shapes import Drawing, String
+from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 # Replace these values with the catalog, schema, and volume created in your workspace.
 CATALOG = "workspace"
@@ -88,6 +90,12 @@ monthly_totals = (
     .orderBy("transaction_year", "transaction_month")
     .collect()
 )
+annual_totals = (
+    gold_sales.groupBy("transaction_year")
+    .agg(F.sum("total_sales_amount").alias("total_sales_amount"))
+    .orderBy("transaction_year")
+    .collect()
+)
 top_states = (
     gold_sales.groupBy("state")
     .agg(F.sum("total_sales_amount").alias("total_sales_amount"))
@@ -128,6 +136,38 @@ def build_table(data: list[list[str]], widths: list[float]) -> Table:
     return table
 
 
+def build_bar_chart(title: str, labels: list[str], values: list[float]) -> Drawing:
+    """Create a compact bar chart with amounts expressed in BRL millions."""
+    drawing = Drawing(17 * cm, 7 * cm)
+    drawing.add(String(0, 6.5 * cm, title, fontName="Helvetica-Bold", fontSize=11))
+    chart = VerticalBarChart()
+    chart.x = 1.5 * cm
+    chart.y = 0.9 * cm
+    chart.width = 14.8 * cm
+    chart.height = 5.1 * cm
+    chart.data = [values]
+    chart.categoryAxis.categoryNames = labels
+    chart.categoryAxis.labels.angle = 25
+    chart.categoryAxis.labels.boxAnchor = "ne"
+    chart.categoryAxis.labels.fontSize = 8
+    chart.valueAxis.labels.fontSize = 8
+    chart.valueAxis.valueMin = 0
+    chart.valueAxis.labelTextFormat = "%.0f"
+    chart.bars[0].fillColor = colors.HexColor("#2F75B5")
+    chart.bars[0].strokeColor = colors.HexColor("#1F4E78")
+    drawing.add(chart)
+    drawing.add(String(1.5 * cm, 0.15 * cm, "Amounts in BRL millions", fontSize=7, fillColor=colors.HexColor("#666666")))
+    return drawing
+
+
+def add_footer(canvas, document) -> None:
+    canvas.saveState()
+    canvas.setFont("Helvetica", 8)
+    canvas.setFillColor(colors.HexColor("#666666"))
+    canvas.drawRightString(A4[0] - 1.5 * cm, 0.8 * cm, f"Page {document.page}")
+    canvas.restoreState()
+
+
 # ReportLab writes the PDF directly to the Unity Catalog volume. Do not use /tmp.
 dbutils.fs.rm(PDF_REPORT_PATH, recurse=True)
 styles = getSampleStyleSheet()
@@ -157,6 +197,20 @@ kpi_data = [
 ]
 story.extend([build_table(kpi_data, [7 * cm, 8 * cm]), Spacer(1, 0.45 * cm)])
 
+annual_labels = [str(row["transaction_year"]) for row in annual_totals]
+annual_values = [float(row["total_sales_amount"]) / 1_000_000 for row in annual_totals]
+category_labels = [row["product_category"] for row in top_categories]
+category_values = [float(row["total_sales_amount"]) / 1_000_000 for row in top_categories]
+story.extend(
+    [
+        build_bar_chart("Sales by year", annual_labels, annual_values),
+        Spacer(1, 0.35 * cm),
+        build_bar_chart("Top five product categories", category_labels, category_values),
+        PageBreak(),
+        Paragraph("Detailed results", styles["Heading1"]),
+    ]
+)
+
 monthly_data = [["Year", "Month", "Total sales"]] + [
     [str(row["transaction_year"]), str(row["transaction_month"]), format_currency(row["total_sales_amount"])]
     for row in monthly_totals
@@ -182,7 +236,7 @@ story.extend(
         build_table(categories_data, [7 * cm, 8 * cm]),
     ]
 )
-document.build(story)
+document.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
 
 delivery_elapsed_seconds = perf_counter() - delivery_start_time
 delivery_summary = spark.createDataFrame(
