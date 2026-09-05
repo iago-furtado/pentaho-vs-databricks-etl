@@ -12,8 +12,6 @@
 # COMMAND ----------
 
 from datetime import datetime, timezone
-from pathlib import Path
-
 from pyspark.sql import functions as F
 from pyspark.sql.types import DecimalType, IntegerType, LongType
 from reportlab.lib import colors
@@ -126,10 +124,12 @@ def build_table(data: list[list[str]], widths: list[float]) -> Table:
     return table
 
 
-local_pdf_path = Path("/tmp/monthly_sales_executive_report.pdf")
+# Databricks serverless compute blocks access to arbitrary local paths such as
+# /tmp. Write the PDF directly to the Unity Catalog volume instead.
+dbutils.fs.rm(PDF_REPORT_PATH, recurse=True)
 styles = getSampleStyleSheet()
 document = SimpleDocTemplate(
-    str(local_pdf_path),
+    PDF_REPORT_PATH,
     pagesize=A4,
     rightMargin=1.5 * cm,
     leftMargin=1.5 * cm,
@@ -173,7 +173,4 @@ story.extend(
     ]
 )
 document.build(story)
-
-dbutils.fs.rm(PDF_REPORT_PATH, recurse=True)
-dbutils.fs.cp(f"file:{local_pdf_path}", PDF_REPORT_PATH)
 print(f"PDF delivery file created at: {PDF_REPORT_PATH}")

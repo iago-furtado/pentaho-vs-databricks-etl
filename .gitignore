@@ -10,6 +10,7 @@ datasets/*/
 results/*/
 !results/README.md
 !results/experiment_runs.csv
+!results/development_runs.csv
 
 # Local environment files
 .env
