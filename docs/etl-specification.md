@@ -119,18 +119,19 @@ The Silver logical output is an enriched transaction dataset with one row per in
 | 12 | `quantity` | Integer | `transactions.quantity` |
 | 13 | `total_amount` | Decimal(12,2) | `quantity * unit_price` |
 
-For each run, each platform must write its result to a separate output directory outside the input dataset directory. CSV is the initial logical interchange format. A distributed platform may produce multiple CSV part files; forcing a single output file is not required, because it would add an artificial platform-specific cost.
+The logical output schemas defined here must be equivalent in both platforms. In Databricks, Silver and Gold are implemented as managed Delta tables so they are registered in Unity Catalog and their table-to-table lineage is available. The Bronze source remains CSV files in a Unity Catalog volume.
 
 In Databricks, use the following volume layout:
 
 ```text
 /Volumes/<catalog>/<schema>/etl_experiment/
-├── bronze/<scenario>/
-│   ├── customers.csv
-│   ├── products.csv
-│   └── transactions.csv
-├── silver/<scenario>/sales_transaction_details/
-└── gold/<scenario>/monthly_sales_by_state_category/
+└── bronze/<scenario>/
+    ├── customers.csv
+    ├── products.csv
+    └── transactions.csv
+
+<catalog>.<schema>.silver_sales_transaction_details_<scenario>
+<catalog>.<schema>.gold_monthly_sales_by_state_category_<scenario>
 ```
 
 ## 6. Gold output contract
@@ -221,6 +222,7 @@ Each completed run should produce one record with, at minimum:
 - Both platforms must implement all rules in Sections 4 and 5.
 - No platform-specific enrichment, pre-aggregation, filtering, or caching may alter the logical output.
 - Any implementation-specific optimization must be documented and must not change the output contract.
+- Databricks uses managed Delta tables for Silver and Gold. If Pentaho uses another physical output format, this difference must be documented as a platform-specific storage characteristic when interpreting write-time results.
 - The source data and generated outputs must not be committed to Git; code, configurations, documentation, and selected small result summaries may be committed.
 
 ## 11. Decisions still required before execution

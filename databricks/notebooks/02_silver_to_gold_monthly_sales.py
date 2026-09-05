@@ -18,13 +18,13 @@ SCHEMA = "default"
 VOLUME = "etl_experiment"
 SCENARIO = "100k"
 
-SILVER_DIRECTORY = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}/silver/{SCENARIO}/sales_transaction_details"
-GOLD_DIRECTORY = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}/gold/{SCENARIO}/monthly_sales_by_state_category"
+SILVER_TABLE = f"{CATALOG}.{SCHEMA}.silver_sales_transaction_details_{SCENARIO}"
+GOLD_TABLE = f"{CATALOG}.{SCHEMA}.gold_monthly_sales_by_state_category_{SCENARIO}"
 
 # COMMAND ----------
 
 silver_transactions = (
-    spark.read.option("header", "true").option("encoding", "UTF-8").csv(SILVER_DIRECTORY)
+    spark.table(SILVER_TABLE)
     .select(
         F.col("transaction_id").cast(IntegerType()),
         F.col("state"),
@@ -66,21 +66,21 @@ monthly_sales = (
 )
 
 # The write is the action that executes the full Silver-to-Gold pipeline.
+# A managed Delta table records the Gold asset in Unity Catalog and its lineage.
 (
-    monthly_sales.write.mode("overwrite")
-    .option("header", "true")
-    .option("encoding", "UTF-8")
-    .csv(GOLD_DIRECTORY)
+    monthly_sales.write.format("delta").mode("overwrite")
+    .option("overwriteSchema", "true")
+    .saveAsTable(GOLD_TABLE)
 )
 
 elapsed_seconds = perf_counter() - start_time
 print(f"Silver-to-Gold ETL completed in {elapsed_seconds:.3f} seconds.")
-print(f"Gold output directory: {GOLD_DIRECTORY}")
+print(f"Gold Delta table: {GOLD_TABLE}")
 
 # COMMAND ----------
 
 # Validation is intentionally outside the measured ETL time.
-gold_output = spark.read.option("header", "true").csv(GOLD_DIRECTORY)
+gold_output = spark.table(GOLD_TABLE)
 expected_columns = [
     "transaction_year",
     "transaction_month",

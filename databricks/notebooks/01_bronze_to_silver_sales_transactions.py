@@ -19,7 +19,7 @@ VOLUME = "etl_experiment"
 SCENARIO = "100k"
 
 BRONZE_DIRECTORY = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}/bronze/{SCENARIO}"
-SILVER_DIRECTORY = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}/silver/{SCENARIO}/sales_transaction_details"
+SILVER_TABLE = f"{CATALOG}.{SCHEMA}.silver_sales_transaction_details_{SCENARIO}"
 EXPECTED_TRANSACTION_COUNTS = {"100k": 100_000, "500k": 500_000, "1m": 1_000_000, "5m": 5_000_000}
 
 # COMMAND ----------
@@ -92,21 +92,21 @@ enriched_transactions = (
 )
 
 # The write is the action that executes the full read-transform-write pipeline.
+# A managed Delta table is used so that the Silver dataset is visible in Unity Catalog.
 (
-    enriched_transactions.write.mode("overwrite")
-    .option("header", "true")
-    .option("encoding", "UTF-8")
-    .csv(SILVER_DIRECTORY)
+    enriched_transactions.write.format("delta").mode("overwrite")
+    .option("overwriteSchema", "true")
+    .saveAsTable(SILVER_TABLE)
 )
 
 elapsed_seconds = perf_counter() - start_time
 print(f"Bronze-to-Silver ETL completed in {elapsed_seconds:.3f} seconds.")
-print(f"Silver output directory: {SILVER_DIRECTORY}")
+print(f"Silver Delta table: {SILVER_TABLE}")
 
 # COMMAND ----------
 
 # Validation is intentionally outside the measured ETL time.
-output = spark.read.option("header", "true").csv(SILVER_DIRECTORY)
+output = spark.table(SILVER_TABLE)
 expected_columns = [
     "transaction_id", "customer_id", "customer_name", "state", "customer_segment",
     "product_id", "product_category", "unit_price", "transaction_date",

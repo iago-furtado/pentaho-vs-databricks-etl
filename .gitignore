@@ -9,6 +9,7 @@ datasets/*/
 !datasets/.gitkeep
 results/*/
 !results/README.md
+!results/experiment_runs.csv
 
 # Local environment files
 .env
