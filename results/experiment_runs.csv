@@ -1,3 +1,9 @@
 run_id,platform,scenario,pipeline_layer,run_number,is_warmup,started_at,elapsed_seconds,status,output_row_count,total_amount_sum,notes
 databricks_100k_bronze_to_silver_001,databricks,100k,bronze_to_silver,1,true,,7.68717232,success,100000,292908411.46,"Delta managed-table pipeline validation and warm-up run; exclude from primary performance summary."
 databricks_100k_silver_to_gold_001,databricks,100k,silver_to_gold,1,true,,3.494997049,success,100000,292908411.46,"Delta managed-table pipeline validation and warm-up run; exclude from primary performance summary."
+databricks_100k_bronze_to_silver_002,databricks,100k,bronze_to_silver,2,false,,3.276659239,success,100000,292908411.46,"Measured Delta managed-table run."
+databricks_100k_bronze_to_silver_003,databricks,100k,bronze_to_silver,3,false,,2.489115076,success,100000,292908411.46,"Measured Delta managed-table run."
+databricks_100k_bronze_to_silver_004,databricks,100k,bronze_to_silver,4,false,,2.428312364,success,100000,292908411.46,"Measured Delta managed-table run."
+databricks_100k_silver_to_gold_002,databricks,100k,silver_to_gold,2,false,,2.409838399,success,100000,292908411.46,"Measured Delta managed-table run."
+databricks_100k_silver_to_gold_003,databricks,100k,silver_to_gold,3,false,,1.904455794,success,100000,292908411.46,"Measured Delta managed-table run."
+databricks_100k_silver_to_gold_004,databricks,100k,silver_to_gold,4,false,,1.871065642,success,100000,292908411.46,"Measured Delta managed-table run."
