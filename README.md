@@ -14,6 +14,13 @@ The technical experiment is complete.
 - Both implementations were executed and validated against transaction counts and sales totals.
 - Three measured executions per layer and scenario are recorded in `results/experiment_runs.csv`.
 
+## Complete article
+
+The final MBA article is available in both formats:
+
+- [Read the final article (PDF)](article/Artigo_Pentaho_vs_Databricks_Final.pdf)
+- [Editable article source (DOCX)](article/Artigo_Pentaho_vs_Databricks_Final.docx)
+
 ## Common ETL logic
 
 ```text
@@ -46,14 +53,36 @@ The datasets are deterministic. Generator seed: `20260827`.
 ## Repository layout
 
 ```text
-data_generation/  Deterministic CSV generator and streaming validator
-datasets/         Locally generated inputs; ignored by Git
-databricks/       Databricks notebooks and execution guidance
-pentaho/          PDI transformations and local execution guidance
-results/          Versioned run summaries and development-run history
-docs/             Experiment design, specifications, and measured results
-tests/            Dataset-generation automated test
+data_generation/                         Deterministic CSV generator and validator
+datasets/                                Locally generated inputs; ignored by Git
+databricks/
+  notebooks/
+    01_bronze_to_silver_sales_transactions.py
+    02_silver_to_gold_monthly_sales.py
+    03_gold_to_delivery_artifacts.py     Delivery artifacts; outside the benchmark
+  README.md                              Databricks setup and execution guidance
+pentaho/
+  transformations/
+    01_bronze_to_silver_sales_transactions.ktr
+    02_silver_to_gold_monthly_sales.ktr
+  README.md                              Pentaho setup and execution guidance
+results/
+  experiment_runs.csv                    Individual measured executions
+  README.md                              Measurement-log conventions
+docs/
+  etl-specification.md                   Common transformation contract
+  experiment-design.md                   Experimental design
+  databricks-experiment-results.md       Databricks measurements
+  comparative-experiment-results.md      Consolidated comparison and validation
+article/
+  appendices/
+    source-data-model.dbml                Source code for the ER diagram
+    README.md                              Guidance for final article artifacts
+tests/                                   Dataset-generation automated test
+README.md                                Project overview and reproduction guide
 ```
+
+The article refers to relevant artifacts by filename. This layout is the canonical map for locating their source, configuration, and execution evidence.
 
 ## Local setup and dataset generation
 

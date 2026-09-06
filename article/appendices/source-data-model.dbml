@@ -1,0 +1,26 @@
+// Source data model for the Pentaho vs. Databricks ETL experiment.
+// Render with https://dbdiagram.io/
+
+Table customers {
+  customer_id integer [pk]
+  customer_name varchar
+  state varchar
+  customer_segment varchar
+}
+
+Table products {
+  product_id integer [pk]
+  product_category varchar
+  unit_price decimal
+}
+
+Table transactions {
+  transaction_id integer [pk]
+  customer_id integer [not null]
+  product_id integer [not null]
+  transaction_date date
+  quantity integer
+}
+
+Ref: customers.customer_id < transactions.customer_id
+Ref: products.product_id < transactions.product_id
