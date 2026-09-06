@@ -15,7 +15,21 @@ Os resultados devem ser apresentados como observações dos ambientes utilizados
 
 No Databricks, os notebooks foram executados no Databricks Free Edition com Serverless compute. A disponibilidade de um SQL Warehouse `2X-Small` é uma limitação da edição gratuita, mas não define uma configuração fixa de CPU, memória ou workers para os notebooks Serverless.
 
-No Pentaho, as transformações foram executadas localmente no Spoon, em Windows. A especificação de hardware local não foi registrada e deve ser incluída no artigo se estiver disponível.
+### 2.1 Ambiente local do Pentaho
+
+As transformações Pentaho foram executadas localmente no Spoon, com a seguinte configuração registrada após os testes:
+
+| Componente | Especificação |
+| --- | --- |
+| Notebook | Dell G3 3500 |
+| Processador | Intel Core i5-10300H @ 2,50 GHz (4 núcleos / 8 processadores lógicos) |
+| Memória RAM | 8 GB |
+| Armazenamento | SSD NVMe ADATA de 512 GB |
+| Sistema operacional | Windows 11 Home 64-bit, build 26200 |
+| Pentaho Data Integration | 9.4.0.0-343 |
+| Java disponível no ambiente | Java 21.0.6 LTS, 64-bit |
+
+Essa especificação descreve o ambiente local observado; ela não representa uma configuração de referência para todas as implantações do Pentaho.
 
 ## 3. Cenários e validação de dados
 
