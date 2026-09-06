@@ -30,10 +30,14 @@ All foreign keys are valid. The initial data is clean; controlled quality issues
 
 The generator uses seed `20260827` and independent deterministic random streams for each table. It writes directly to CSV files, avoiding an in-memory transaction table. The validator reads CSV files row by row and verifies headers, row counts, sequential unique identifiers, reference ranges, positive quantities and prices, and the configured date range.
 
-## Future phases
+## Completed experiment phases
 
-1. Define equivalent ETL transformations and outputs (documented in `etl-specification.md`).
-2. Implement the Pentaho pipeline.
-3. Implement the Databricks pipeline.
-4. Execute controlled runs and record measurements.
-5. Analyze and report results.
+1. The common ETL contract was defined in `etl-specification.md`.
+2. The Pentaho and Databricks pipelines were implemented.
+3. Controlled executions were run for all four scenarios.
+4. Validation evidence and individual measurements were recorded in `../results/experiment_runs.csv`.
+5. The consolidated findings are available in `comparative-experiment-results.md`.
+
+## Interpretation boundary
+
+The experiment compares observed behavior in a local Pentaho environment and a managed Databricks Serverless environment. It does not constitute a hardware-controlled benchmark or a universal ranking of the two platforms.

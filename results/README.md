@@ -4,4 +4,4 @@
 
 `development_runs.csv` preserves exploratory runs that are not eligible for the final performance analysis, such as tests made before the Delta-table architecture was adopted.
 
-The first successful run of each platform and scenario should be marked as `is_warmup=true`. Keep it for traceability, but exclude it from the primary performance summary unless the methodology explicitly states otherwise.
+Warm-up executions are excluded from primary statistics. Databricks warm-up rows are retained in the log. Pentaho warm-ups were run before the measured series, but their timestamps were not retained consistently; the file therefore contains the three measured Pentaho runs only. This limitation is documented in `../docs/comparative-experiment-results.md`.

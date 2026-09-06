@@ -1,92 +1,96 @@
-# Resultados Comparativos do Experimento ETL: Pentaho e Databricks
+# Comparative ETL Experiment Results: Pentaho and Databricks
 
-## 1. Objetivo deste resumo
+## 1. Purpose of this summary
 
-Este documento consolida os resultados medidos para servir de insumo à redação do artigo de MBA. Ele compara duas implementações da mesma lógica de negócio: leitura de clientes, produtos e transações; limpeza do nome do cliente; junção pelas chaves `customer_id` e `product_id`; cálculo do valor total da transação; e agregação por ano, mês, estado e categoria de produto.
+This document consolidates the measured results to serve as technical input for the MBA article. It compares two implementations of the same business logic: reading customers, products, and transactions; cleaning customer names; joining by `customer_id` and `product_id`; calculating the transaction total; and aggregating by year, month, state, and product category.
 
-Os resultados devem ser apresentados como observações dos ambientes utilizados. Eles não sustentam uma afirmação universal de superioridade entre plataformas, porque o Pentaho foi executado localmente e o Databricks em infraestrutura Serverless gerenciada.
+The results must be presented as observations from the evaluated environments. They do not support a universal claim of superiority between platforms because Pentaho ran locally and Databricks ran on managed Serverless infrastructure.
 
-## 2. Implementações avaliadas
+## 2. Evaluated implementations
 
-| Plataforma | Bronze para Silver | Silver para Gold | Armazenamento Silver/Gold |
+| Platform | Bronze to Silver | Silver to Gold | Silver/Gold storage |
 | --- | --- | --- | --- |
-| Databricks | Notebook PySpark: leitura dos CSVs, limpeza, joins, campos derivados e escrita | Notebook PySpark: agregação mensal por estado e categoria | Tabelas Delta gerenciadas no Unity Catalog |
-| Pentaho Data Integration 9.4 | `01_bronze_to_silver_sales_transactions.ktr` | `02_silver_to_gold_monthly_sales.ktr` | Arquivos CSV locais em `pentaho/output/<scenario>/` |
+| Databricks | PySpark notebook: CSV ingestion, cleaning, joins, derived fields, and write | PySpark notebook: monthly aggregation by state and category | Managed Delta tables in Unity Catalog |
+| Pentaho Data Integration 9.4 | `01_bronze_to_silver_sales_transactions.ktr` | `02_silver_to_gold_monthly_sales.ktr` | Local CSV files in `pentaho/output/<scenario>/` |
 
-No Databricks, os notebooks foram executados no Databricks Free Edition com Serverless compute. A disponibilidade de um SQL Warehouse `2X-Small` é uma limitação da edição gratuita, mas não define uma configuração fixa de CPU, memória ou workers para os notebooks Serverless.
+The Databricks notebooks ran on Databricks Free Edition using Serverless compute. Availability of a `2X-Small` SQL Warehouse is a Free Edition limitation, but it does not define a fixed CPU, memory, or worker configuration for Serverless notebooks.
 
-### 2.1 Ambiente local do Pentaho
+### 2.1 Pentaho local environment
 
-As transformações Pentaho foram executadas localmente no Spoon, com a seguinte configuração registrada após os testes:
+The Pentaho transformations ran locally in Spoon, using the following configuration recorded after the tests:
 
-| Componente | Especificação |
+| Component | Specification |
 | --- | --- |
-| Notebook | Dell G3 3500 |
-| Processador | Intel Core i5-10300H @ 2,50 GHz (4 núcleos / 8 processadores lógicos) |
-| Memória RAM | 8 GB |
-| Armazenamento | SSD NVMe ADATA de 512 GB |
-| Sistema operacional | Windows 11 Home 64-bit, build 26200 |
+| Laptop | Dell G3 3500 |
+| Processor | Intel Core i5-10300H @ 2.50 GHz (4 cores / 8 logical processors) |
+| RAM | 8 GB |
+| Storage | 512 GB ADATA NVMe SSD |
+| Operating system | Windows 11 Home 64-bit, build 26200 |
 | Pentaho Data Integration | 9.4.0.0-343 |
-| Java disponível no ambiente | Java 21.0.6 LTS, 64-bit |
+| Java available in the environment | Java 21.0.6 LTS, 64-bit |
 
-Essa especificação descreve o ambiente local observado; ela não representa uma configuração de referência para todas as implantações do Pentaho.
+This specification describes the observed local environment; it is not a reference configuration for all Pentaho deployments.
 
-## 3. Cenários e validação de dados
+### 2.2 Gold schema difference
 
-| Cenário | Clientes | Produtos | Transações | Total de vendas validado |
+Databricks Gold includes `average_transaction_amount` in addition to the shared Gold metrics. The current Pentaho Gold transformation produces the shared aggregation grain and three common metrics only: `transaction_count`, `total_quantity`, and `total_sales_amount`. The comparison therefore validates the common aggregation grain, transaction count, and sales total; it is not a byte-for-byte identical Gold schema comparison.
+
+## 3. Dataset scenarios and data validation
+
+| Scenario | Customers | Products | Transactions | Validated sales total |
 | --- | ---: | ---: | ---: | ---: |
-| 100k | 10.000 | 2.000 | 100.000 | BRL 292.908.411,46 |
-| 500k | 50.000 | 10.000 | 500.000 | BRL 1.493.576.980,67 |
-| 1m | 100.000 | 20.000 | 1.000.000 | BRL 2.987.230.578,70 |
-| 5m | 500.000 | 100.000 | 5.000.000 | BRL 14.942.606.763,93 |
+| 100k | 10,000 | 2,000 | 100,000 | BRL 292,908,411.46 |
+| 500k | 50,000 | 10,000 | 500,000 | BRL 1,493,576,980.67 |
+| 1m | 100,000 | 20,000 | 1,000,000 | BRL 2,987,230,578.70 |
+| 5m | 500,000 | 100,000 | 5,000,000 | BRL 14,942,606,763.93 |
 
-Os datasets foram gerados deterministicamente com a seed `20260827`. Para todos os cenários e ambas as plataformas, a soma de `transaction_count` na Gold e a soma de vendas corresponderam aos valores esperados. A Gold teve menos linhas físicas porque agrupa por ano, mês, estado e categoria.
+All datasets were generated deterministically with seed `20260827`. For every scenario and both platforms, the sum of Gold `transaction_count` and the sales total matched the expected values. Gold has fewer physical rows because it aggregates data by year, month, state, and category.
 
-## 4. Método de medição
+## 4. Measurement method
 
-- Em cada cenário e camada, foi executado um warm-up antes das três execuções medidas; os warm-ups foram excluídos das estatísticas.
-- No Databricks, o tempo foi medido dentro dos notebooks, incluindo leitura, transformação e escrita da tabela Delta; a validação ocorreu após o encerramento da cronometragem.
-- No Pentaho, o tempo foi obtido a partir dos timestamps `Dispatching started` e `The transformation has finished!!` do Spoon. Portanto, a resolução dos tempos do Pentaho é de um segundo.
-- Os tempos end-to-end apresentados são a soma das médias Bronze-to-Silver e Silver-to-Gold. A geração de CSV/PDF de entrega no Databricks não integra o benchmark.
-- Os warm-ups do Pentaho foram executados antes das séries, mas seus horários não foram registrados sistematicamente no arquivo de resultados; somente as execuções medidas estão registradas.
+- A warm-up execution was performed before the three measured executions for each scenario and layer; warm-ups were excluded from the statistics.
+- In Databricks, time was measured inside the notebooks, covering read, transformation, and managed Delta-table write. Validation occurred after timing ended.
+- In Pentaho, time was obtained from the Spoon `Dispatching started` and `The transformation has finished!!` timestamps. Pentaho times therefore have one-second resolution.
+- End-to-end times are the sum of the Bronze-to-Silver and Silver-to-Gold means. Databricks CSV/PDF delivery generation is outside the benchmark.
+- Pentaho warm-ups were performed before the series, but their timestamps were not systematically retained in the results file; only measured executions are recorded.
 
-## 5. Resultados principais
+## 5. Main results
 
-Tempos em segundos; cada média é calculada a partir de três execuções medidas.
+Times are in seconds; each mean is calculated from three measured executions.
 
-| Cenário | Databricks Bronze-Silver | Databricks Silver-Gold | Databricks end-to-end | Pentaho Bronze-Silver | Pentaho Silver-Gold | Pentaho end-to-end |
+| Scenario | Databricks Bronze-Silver | Databricks Silver-Gold | Databricks end-to-end | Pentaho Bronze-Silver | Pentaho Silver-Gold | Pentaho end-to-end |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 100k | 2,731 | 2,062 | 4,793 | 1,667 | 2,000 | 3,667 |
-| 500k | 3,791 | 2,042 | 5,833 | 5,667 | 8,000 | 13,667 |
-| 1m | 4,577 | 1,972 | 6,549 | 9,000 | 25,333 | 34,333 |
-| 5m | 6,566 | 2,129 | 8,695 | 50,000 | 124,333 | 174,333 |
+| 100k | 2.731 | 2.062 | 4.793 | 1.667 | 2.000 | 3.667 |
+| 500k | 3.791 | 2.042 | 5.833 | 5.667 | 8.000 | 13.667 |
+| 1m | 4.577 | 1.972 | 6.549 | 9.000 | 25.333 | 34.333 |
+| 5m | 6.566 | 2.129 | 8.695 | 50.000 | 124.333 | 174.333 |
 
-### 5.1 Variabilidade das execuções medidas
+### 5.1 Variability of measured executions
 
-Desvio-padrão amostral, em segundos.
+Sample standard deviation, in seconds.
 
-| Cenário | Databricks Bronze-Silver | Databricks Silver-Gold | Pentaho Bronze-Silver | Pentaho Silver-Gold |
+| Scenario | Databricks Bronze-Silver | Databricks Silver-Gold | Pentaho Bronze-Silver | Pentaho Silver-Gold |
 | --- | ---: | ---: | ---: | ---: |
-| 100k | 0,473 | 0,302 | 0,577 | 0,000 |
-| 500k | 0,252 | 0,116 | 2,082 | 1,732 |
-| 1m | 0,011 | 0,078 | 0,000 | 4,726 |
-| 5m | 0,812 | 0,072 | 5,292 | 13,868 |
+| 100k | 0.473 | 0.302 | 0.577 | 0.000 |
+| 500k | 0.252 | 0.116 | 2.082 | 1.732 |
+| 1m | 0.011 | 0.078 | 0.000 | 4.726 |
+| 5m | 0.812 | 0.072 | 5.292 | 13.868 |
 
-## 6. Interpretação adequada dos resultados
+## 6. Appropriate interpretation of the results
 
-1. Nos ambientes observados, o Databricks apresentou crescimento moderado do tempo end-to-end entre 100k e 5m transações (de 4,793 s para 8,695 s). A etapa Silver-to-Gold permaneceu próxima de dois segundos nos quatro cenários.
-2. No Pentaho local, o aumento de volume afetou especialmente a etapa Silver-to-Gold. Essa etapa precisa ordenar e agregar arquivos CSV localmente; a média passou de 2,000 s em 100k para 124,333 s em 5m.
-3. Em 100k, as diferenças são pequenas e a resolução de um segundo do Spoon limita qualquer interpretação fina. A diferença de comportamento torna-se mais visível a partir de 500k.
-4. A comparação deve considerar que o Databricks escreveu tabelas Delta gerenciadas e o Pentaho escreveu CSVs locais. Esse é um aspecto físico e arquitetural específico de cada plataforma, não uma variável completamente controlada.
-5. A infraestrutura também não é equivalente: Databricks Serverless é gerenciado e dinâmico, enquanto o Pentaho usa recursos da máquina local. Assim, a conclusão apropriada é sobre o desempenho medido nessas condições, e não sobre todas as implantações possíveis das ferramentas.
+1. In the observed environments, Databricks showed moderate end-to-end time growth from 100k to 5m transactions, increasing from 4.793 s to 8.695 s. The Silver-to-Gold step remained close to two seconds across all scenarios.
+2. In local Pentaho, volume growth particularly affected the Silver-to-Gold step. This step sorts and aggregates local CSV files; its mean increased from 2.000 s at 100k to 124.333 s at 5m.
+3. At 100k, differences are small and Spoon's one-second resolution limits fine-grained interpretation. The difference in observed behavior becomes clearer from 500k onward.
+4. The comparison must account for Databricks writing managed Delta tables and Pentaho writing local CSV files. This is a platform-specific physical and architectural characteristic rather than a fully controlled variable.
+5. The infrastructure is also not equivalent: Databricks Serverless is managed and dynamic, whereas Pentaho uses resources from the local laptop. The appropriate conclusion concerns performance measured under these conditions, not every possible deployment of either tool.
 
-## 7. Texto-base sugerido para a seção de resultados do artigo
+## 7. Suggested source text for the article results section
 
-> Foram avaliadas implementações equivalentes de ETL em Databricks e Pentaho Data Integration, usando quatro volumes de dados sintéticos determinísticos, de 100 mil a 5 milhões de transações. Em todos os cenários, ambas as implementações preservaram a contagem de transações e o valor agregado das vendas. No ambiente Databricks Free Edition com compute Serverless, o tempo médio end-to-end variou de 4,793 s (100k) a 8,695 s (5m). No ambiente Pentaho local, os tempos médios variaram de 3,667 s a 174,333 s. O crescimento no Pentaho foi concentrado sobretudo na agregação Silver-to-Gold, que envolve ordenação e agrupamento de arquivos CSV no ambiente local. Os resultados devem ser interpretados como observações das configurações avaliadas, pois as plataformas utilizaram infraestruturas e formatos físicos de saída distintos.
+> Equivalent ETL implementations were evaluated in Databricks and Pentaho Data Integration using four deterministic synthetic data volumes, from 100 thousand to 5 million transactions. In every scenario, both implementations preserved the transaction count and aggregate sales value. In the Databricks Free Edition environment using Serverless compute, the mean end-to-end time ranged from 4.793 s at 100k to 8.695 s at 5m. In the local Pentaho environment, mean times ranged from 3.667 s to 174.333 s. Pentaho growth was concentrated primarily in the Silver-to-Gold aggregation, which sorts and groups local CSV files. The results should be interpreted as observations from the evaluated configurations because the platforms used different infrastructure and physical output formats.
 
-## 8. Registros de origem
+## 8. Source records
 
-- Execuções individuais: `results/experiment_runs.csv`.
-- Resultado detalhado do Databricks: `docs/databricks-experiment-results.md`.
-- Transformações Pentaho: `pentaho/transformations/`.
-- Saídas locais do Pentaho: `pentaho/output/<scenario>/` (ignoradas pelo Git).
+- Individual executions: `results/experiment_runs.csv`.
+- Detailed Databricks results: `docs/databricks-experiment-results.md`.
+- Pentaho transformations: `pentaho/transformations/`.
+- Pentaho local outputs: `pentaho/output/<scenario>/` (ignored by Git).

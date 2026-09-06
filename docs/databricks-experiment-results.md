@@ -4,7 +4,7 @@
 
 This document consolidates the Databricks implementation and measured results for the ETL experiment defined in `etl-specification.md`. It is intended as technical input for the academic article and must be interpreted together with the methodological limitations in Section 8.
 
-The Pentaho implementation and its measurements have not yet been performed. Therefore, this document does not make a comparative performance claim between Pentaho and Databricks.
+The Pentaho implementation and measurements are documented separately in `comparative-experiment-results.md`. This document remains focused on the Databricks implementation and does not, by itself, make a comparative performance claim.
 
 ## 2. Databricks implementation
 

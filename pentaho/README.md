@@ -4,7 +4,7 @@ This directory contains the local Pentaho Data Integration (PDI) implementation 
 
 ## Transformations
 
-Create and save the following Spoon transformations in `transformations/`:
+The following Spoon transformations are included in `transformations/`:
 
 | File | Purpose |
 | --- | --- |
@@ -29,6 +29,8 @@ datasets/<SCENARIO>/
 pentaho/output/<SCENARIO>/
 ```
 
+The current `.ktr` files contain the original author's absolute Windows project path. If the repository is cloned elsewhere, update the Text File Input and Text File Output paths in Spoon before execution.
+
 Generated Pentaho outputs are excluded from Git. The `.ktr` transformation files, documentation, and selected measurement summaries must be committed.
 
 ## Measurement approach
@@ -38,5 +40,7 @@ For each scenario and transformation:
 1. Run one warm-up execution.
 2. Run three measured executions.
 3. Record the elapsed time, output transaction count, and total sales amount in `../results/experiment_runs.csv`.
+
+For the completed local runs, elapsed time was derived from Spoon log timestamps and therefore has one-second resolution. See `../docs/comparative-experiment-results.md` for the environment and results.
 
 The Silver output must contain the same logical fields as the Databricks Silver table. The Gold output must contain the same aggregation grain and metrics as the Databricks Gold table.
