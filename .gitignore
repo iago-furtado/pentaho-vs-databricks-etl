@@ -18,3 +18,8 @@ pentaho/output/*/
 
 # Local environment files
 .env
+
+# Intermediate article-image exports; final figures are embedded in the versioned DOCX/PDF.
+article/appendices/ChatGPT Image*.png
+article/appendices/Figura_7_tempos_por_etapa.png
+article/appendices/Picture1.png
